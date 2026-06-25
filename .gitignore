@@ -15,7 +15,8 @@ venv/
 
 # Artifacts
 *.joblib
-!src/apex_oracle/models/*.joblib   # the bundled real-trained default model must ship
+# the bundled real-trained default model MUST ship (this negation needs its own line):
+!src/apex_oracle/models/default.joblib
 outputs/
 temp/
 *.log
