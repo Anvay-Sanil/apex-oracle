@@ -9,6 +9,7 @@ import numpy as np
 from .config import PipelineConfig
 from .data import LightCurve
 from .features import TransitFeatures, extract_features
+from .fitting import TransitFit, fit_transit
 from .model import BaseClassifier, Prediction, RuleBasedClassifier
 from .preprocess import detrend, phase_fold
 from .search import _fold_power, bls_search
@@ -89,13 +90,16 @@ class InspectionResult:
     parameters: dict
     vetting: dict
     arrays: dict = field(repr=False, default_factory=dict)
+    fit: "TransitFit | None" = None
 
     def summary(self) -> str:
-        p, f = self.prediction, self.features
+        p, f, fit = self.prediction, self.features, self.fit
+        d, d_e = (fit.depth_ppm, fit.depth_err_ppm) if fit else (f.depth_ppm, f.depth_err_ppm)
+        u, u_e = (fit.duration_hours, fit.duration_err_hours) if fit else (f.duration_hours, f.duration_err_hours)
+        tag = " (fit)" if fit else ""
         return (f"[{self.source}] {p.label.upper()} ({p.confidence:.0%}) | "
-                f"P={f.period_days:.3f}±{f.period_err_days:.3f} d, "
-                f"depth={f.depth_ppm:.0f}±{f.depth_err_ppm:.0f} ppm, "
-                f"dur={f.duration_hours:.2f}±{f.duration_err_hours:.2f} h, SNR={f.snr:.1f}")
+                f"P={self.period_days:.3f}±{f.period_err_days:.3f} d, "
+                f"depth={d:.0f}±{d_e:.0f} ppm{tag}, dur={u:.2f}±{u_e:.2f} h{tag}, SNR={f.snr:.1f}")
 
 
 def _default_classifier(cfg: PipelineConfig) -> BaseClassifier:
@@ -118,27 +122,43 @@ class ExoplanetPipeline:
         self.cfg = config or PipelineConfig()
         self.classifier = classifier or _default_classifier(self.cfg)
 
-    def run(self, lc: LightCurve) -> InspectionResult:
+    def run(self, lc: LightCurve, vet_blend: str | None = None) -> InspectionResult:
         flat, _, period, t0, phase, folded, feats, search = detect(lc, self.cfg)
+        fit = fit_transit(phase, folded, period,
+                          init_depth=max(feats.depth_ppm, 1.0) * 1e-6,
+                          init_dur_phase=feats.duration_phase,
+                          per_point_noise=_per_point_noise(flat))
         pred = self.classifier.predict_one(feats)
-        params = {
+        params = {  # depth & duration from the transit-model fit (with covariance errors)
             "period_days": (feats.period_days, feats.period_err_days),
-            "depth_ppm": (feats.depth_ppm, feats.depth_err_ppm),
-            "duration_hours": (feats.duration_hours, feats.duration_err_hours),
+            "depth_ppm": (fit.depth_ppm, fit.depth_err_ppm),
+            "duration_hours": (fit.duration_hours, fit.duration_err_hours),
             "snr": feats.snr,
+            "reduced_chi2": fit.reduced_chi2,
         }
         vetting = {
             "odd_even_flag": feats.odd_even_ppm > 0.2 * max(feats.depth_ppm, 1),
             "secondary_flag": feats.secondary_ppm > 0.3 * max(feats.depth_ppm, 1),
             "localized": feats.localized,
-            "centroid": "requires pixel data (not available for 1-D light curves)",
+            "centroid": "pass vet_blend=<target> to run the TPF centroid blend test",
         }
+        if vet_blend:
+            from .vetting import blend_test
+            br = blend_test(vet_blend, period, t0, fit.duration_hours)
+            vetting["blend"] = br.as_dict()
+            if br.is_blend:  # off-target dip -> 'blend' becomes the classification
+                pred = Prediction(
+                    "blend", float(min(0.6 + br.significance * 0.04, 0.95)),
+                    [f"off-target centroid shift {br.offset_arcsec:.1f}\" "
+                     f"({br.significance:.1f} sigma) -> blend, not on the target star"],
+                    "centroid-vetting")
         result = InspectionResult(
             source=lc.source, prediction=pred, features=feats,
             period_days=period, t0_days=t0,
             parameters=params, vetting=vetting,
             arrays={"time": lc.time, "flat": flat, "phase": phase,
                     "folded": folded, "spectrum": (search.periods, search.spectrum)},
+            fit=fit,
         )
         logger.info(result.summary())
         return result

@@ -40,7 +40,8 @@ def cmd_run(args) -> int:
     if args.model:
         from .model import SklearnClassifier
         classifier = SklearnClassifier.load(args.model)
-    _print_result(ExoplanetPipeline(PipelineConfig(seed=args.seed), classifier).run(lc))
+    _print_result(ExoplanetPipeline(PipelineConfig(seed=args.seed), classifier)
+                  .run(lc, vet_blend=args.vet_blend))
     return 0
 
 
@@ -88,6 +89,8 @@ def build_parser() -> argparse.ArgumentParser:
     r = sub.add_parser("run", help="run on a source (CSV path, TIC/TOI id, or synthetic:<kind>)")
     r.add_argument("source")
     r.add_argument("--model", help="path to a trained .joblib model (optional)")
+    r.add_argument("--vet-blend", default=None,
+                   help="target name/TIC for the TPF centroid blend test (real targets only)")
     r.set_defaults(func=cmd_run)
 
     t = sub.add_parser("train", help="train the default classifier on synthetic injections")

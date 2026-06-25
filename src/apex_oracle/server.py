@@ -30,20 +30,21 @@ _UI_DIR: str | None = None   # when set, the Inspector UI is served at "/"
 
 def result_to_dict(res: InspectionResult, n_curve: int = 200) -> dict:
     """Serialise an InspectionResult to a JSON-friendly dict (with a folded curve)."""
-    f = res.features
     phase, folded = res.arrays["phase"], res.arrays["folded"]
     step = max(1, phase.size // n_curve)
+    p = res.parameters
     return {
         "source": res.source,
         "classification": res.prediction.label,
         "confidence": round(res.prediction.confidence, 4),
         "method": res.prediction.method,
         "reasons": res.prediction.reasons,
-        "parameters": {
-            "period_days": [round(f.period_days, 5), round(f.period_err_days, 5)],
-            "depth_ppm": [round(f.depth_ppm, 1), round(f.depth_err_ppm, 1)],
-            "duration_hours": [round(f.duration_hours, 3), round(f.duration_err_hours, 3)],
-            "snr": round(f.snr, 2),
+        "parameters": {  # depth & duration are from the transit-model fit (with covariance errors)
+            "period_days": [round(p["period_days"][0], 5), round(p["period_days"][1], 5)],
+            "depth_ppm": [round(p["depth_ppm"][0], 1), round(p["depth_ppm"][1], 1)],
+            "duration_hours": [round(p["duration_hours"][0], 3), round(p["duration_hours"][1], 3)],
+            "snr": round(p["snr"], 2),
+            "reduced_chi2": round(p.get("reduced_chi2", 0.0), 2),
         },
         "vetting": res.vetting,
         "folded_curve": {

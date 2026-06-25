@@ -69,6 +69,19 @@ is what made AI win. Honest caveat: the 34 planets are hot-Jupiter-heavy, so the
 strongest on the catalogue vetting distribution; broadening to shallow/small planets (and the
 deep Transformer/SBI models) is the next step (P1).
 
+## Parameter estimation by light-curve fitting
+Depth and duration are obtained by **fitting a transit model** (trapezoid via
+`scipy.optimize.curve_fit`) to the folded curve, with 1-sigma errors from the covariance matrix
+and a reduced chi-squared (`src/apex_oracle/fitting.py`). Verified on real WASP-18:
+**depth 10,297 +/- 13 ppm, duration 2.17 h, chi2nu 2.87** (period 0.941 d from the search).
+
+## Blend vetting (pixel-level)
+A centroid blend test (`src/apex_oracle/vetting.py`) downloads the **Target Pixel File** and
+compares the in-transit vs out-of-transit photocentre; a significant shift flags a **`blend`**
+(an off-target dip) as a distinct class. Verified on WASP-18: centroid offset **0.004" (0.35
+sigma) -> on-target, not a blend** (correct for a real planet). Run with
+`apex-oracle run "<target>" --vet-blend "<target>"` or `pipeline.run(lc, vet_blend=...)`.
+
 ## Honest limitations
 - Default training is synthetic injections; not yet trained/validated on a large labelled
   real set.

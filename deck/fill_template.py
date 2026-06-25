@@ -61,6 +61,20 @@ append_value(slides[0], "team leader", "[YOUR NAME]")
 append_value(slides[0], "problem statement",
              "AI-enabled Detection of Exoplanets from Noisy Astronomical Light Curves")
 
+# Live demo banner (hyperlinked, clickable in the PDF)
+_LIVE = "https://apex-oracle-production.up.railway.app"
+_tb = slides[0].shapes.add_textbox(Inches(0.34), Inches(5.16), Inches(9.3), Inches(0.38))
+_tf = _tb.text_frame
+_tf.margin_left = 0; _tf.margin_top = 0; _tf.margin_bottom = 0
+_p = _tf.paragraphs[0]
+_r = _p.add_run(); _r.text = "LIVE DEMO   "
+_r.font.name = FONT; _r.font.size = Pt(14); _r.font.bold = True
+_r.font.color.rgb = RGBColor(0x0F, 0x6E, 0x56)
+_r2 = _p.add_run(); _r2.text = _LIVE
+_r2.font.name = FONT; _r2.font.size = Pt(14); _r2.font.bold = True
+_r2.font.color.rgb = RGBColor(0x18, 0x5F, 0xA5)
+_r2.hyperlink.address = _LIVE
+
 # ---------- Slide 2: team members ----------
 # The template already ships a baked-in grid (Team Leader + Team Member-1/2/3, each with
 # Name/College), which matches ISRO's 3-4 member rule. Leave it untouched for the user to

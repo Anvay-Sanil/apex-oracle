@@ -193,6 +193,19 @@ real TESS data, security accreditation, deployment infra, GPU-scale training. NO
 - Deploy paths documented (DEPLOY.md): local `docker build && docker run -p 8800:8800`; cloud via
   Render blueprint (render.yaml) / Fly / Railway. Vercel only for the static UI (+ ?api to a backend).
 
+## PS-7 SCIENCE GAPS CLOSED: fitting + blend (2026-06-26)
+- LIGHT-CURVE FITTING (PS: "parameters by light curve fitting"): src/apex_oracle/fitting.py -
+  trapezoid transit fit via scipy.curve_fit -> depth/duration with covariance 1-sigma errors +
+  reduced chi2. Fixed a depth/ingress degeneracy (tie ingress to width, 3 params). Pipeline now
+  reports FITTED params. Verified WASP-18: depth 10,297+/-13 ppm, dur 2.17 h, chi2nu 2.87.
+- BLEND CLASSIFICATION (PS: classify into "blends"): src/apex_oracle/vetting.py - TPF centroid
+  test (in-transit vs out-of-transit photocentre). "blend" becomes a 4th class on a significant
+  shift. Opt-in: run(lc, vet_blend=<target>) / CLI `run --vet-blend`. Verified WASP-18: offset
+  0.004" (0.35 sigma) -> on-target, not a blend (correct).
+- Exposed in CLI (--vet-blend) and API (fitted depth/duration + reduced_chi2). 16/16 non-network
+  tests pass; ruff clean. RESULTS.md updated. PS-7 gaps #1 (blend) and #2 (fitting) now CLOSED;
+  remaining PS-7 item = the 3-page report.
+
 ## Demo delivered (working prototypes)
 - FLAGSHIP: app/inspector/index.html - standalone, enterprise-grade "mission control" web app.
   Three.js 3D star+transiting-planet driving a LIVE light curve, phase-folded+attention charts,
