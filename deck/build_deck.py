@@ -5,7 +5,6 @@ from pptx.util import Inches, Pt, Emu
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 from pptx.enum.shapes import MSO_SHAPE, MSO_CONNECTOR
-from pptx.oxml.ns import qn
 
 # ---- palette ----
 NAVY  = RGBColor(0x0B, 0x14, 0x37)
@@ -218,7 +217,6 @@ r=p.add_run(); r.text="Analyze"; r.font.size=Pt(10.5); r.font.bold=True; r.font.
 card(s, 0.75, 2.35, 5.1, 2.6, fill=NAVY3)
 text(s, 0.95, 2.45, 4.7, 0.3, "Phase-folded light curve + attention", size=10.5, color=ICE, bold=True)
 # draw transit curve with connectors
-import math
 ax, ay, aw, ah = 0.95, 2.9, 4.7, 1.85
 base = ay + ah*0.32; floor = ay + ah*0.74
 N = 44; pts = []

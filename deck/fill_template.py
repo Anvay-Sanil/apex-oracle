@@ -4,7 +4,7 @@ import os
 from pptx import Presentation
 from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
-from pptx.enum.text import MSO_AUTO_SIZE, PP_ALIGN, MSO_ANCHOR
+from pptx.enum.text import MSO_AUTO_SIZE, MSO_ANCHOR
 
 SRC = r"C:\Users\User\Downloads\[Pub] ISRO BAH 2026 _ Idea Submission Template.pptx"
 OUT = r"E:\isro\deck\ISRO_BAH2026_Idea_Submission_FILLED.pptx"

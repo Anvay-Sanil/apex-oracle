@@ -10,7 +10,6 @@ from pathlib import Path
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import numpy as np
 
 from apex_oracle import ExoplanetPipeline
 from apex_oracle.data import from_tess

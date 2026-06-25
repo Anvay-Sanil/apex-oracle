@@ -10,7 +10,6 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import numpy as np
 import streamlit as st
 
 from pipeline import LightCurveConfig, _binned_profile, attention_weights, run_pipeline

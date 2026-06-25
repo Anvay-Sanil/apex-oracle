@@ -5,7 +5,6 @@ import json
 import threading
 import urllib.request
 
-import pytest
 
 from apex_oracle.server import analyze, create_server
 

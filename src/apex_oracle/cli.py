@@ -15,7 +15,6 @@ logger = get_logger("apex_oracle.cli")
 
 
 def _print_result(res) -> None:
-    f = res.features
     print("\n" + "=" * 64)
     print(res.summary())
     print("-" * 64)

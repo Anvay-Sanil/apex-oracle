@@ -10,9 +10,8 @@ import numpy as np
 
 from .config import PipelineConfig
 from .data import LightCurve, from_synthetic
-from .features import TransitFeatures
 from .model import BaseClassifier, RuleBasedClassifier
-from .pipeline import ExoplanetPipeline, features_from_lightcurve
+from .pipeline import ExoplanetPipeline
 
 _CLASS_KIND = {"transit": "planet", "eclipse": "eb", "starspot": "starspot"}
 
