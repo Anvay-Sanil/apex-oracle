@@ -24,3 +24,6 @@ temp/
 .DS_Store
 .idea/
 .vscode/
+
+# Local agent session logs/settings — do not publish
+.claude/
