@@ -1,0 +1,10 @@
+# Render one-click blueprint: builds the Dockerfile and serves UI + API on one URL.
+# Use: push repo to GitHub -> Render -> New -> Blueprint -> pick this repo.
+services:
+  - type: web
+    name: apex-oracle
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: standard            # >=2GB RAM; the free 512MB tier OOMs loading lightkurve/astropy
+    healthCheckPath: /health
+    autoDeploy: true

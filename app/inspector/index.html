@@ -1,0 +1,666 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>APEX·ORACLE — Exoplanet Inspector</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --void:#04070f; --void2:#070c18; --panel:rgba(13,22,42,0.55); --panel-solid:#0b1426;
+    --edge:rgba(95,225,212,0.22); --edge-soft:rgba(120,150,210,0.14);
+    --cyan:#41e0d0; --cyan-dim:#2aa99c; --ice:#cfe3ff; --muted:#7f93bd; --faint:#48597f;
+    --amber:#ffb347; --red:#ff5d6c; --green:#5be08a; --white:#eef5ff;
+    --glow:0 0 24px rgba(65,224,208,0.35);
+    --disp:'Chakra Petch',sans-serif; --body:'Sora',sans-serif; --mono:'JetBrains Mono',monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:
+      radial-gradient(1200px 700px at 72% 18%, rgba(40,90,140,0.20), transparent 60%),
+      radial-gradient(900px 600px at 12% 88%, rgba(120,40,110,0.16), transparent 55%),
+      radial-gradient(700px 500px at 50% 50%, rgba(20,40,80,0.20), transparent 70%),
+      var(--void);
+    color:var(--ice); font-family:var(--body); overflow:hidden; height:100vh;
+    letter-spacing:.2px;
+  }
+  ::selection{background:rgba(65,224,208,.3);color:#fff}
+  .app{
+    height:100vh; display:grid;
+    grid-template-columns:236px 1fr 364px;
+    grid-template-rows:58px 1fr 232px;
+    grid-template-areas:"header header header" "rail view hud" "rail charts hud";
+    gap:12px; padding:12px;
+  }
+  /* ---------- header ---------- */
+  header{grid-area:header; display:flex; align-items:center; gap:18px;
+    padding:0 18px; border:1px solid var(--edge-soft); border-radius:12px;
+    background:linear-gradient(180deg,rgba(12,20,38,.7),rgba(8,13,26,.5)); backdrop-filter:blur(8px);}
+  .brand{display:flex; align-items:baseline; gap:10px}
+  .brand .logo{width:26px;height:26px;position:relative;flex:0 0 auto;align-self:center}
+  .brand h1{font-family:var(--disp); font-weight:700; font-size:18px; letter-spacing:3px; color:#fff}
+  .brand h1 b{color:var(--cyan)}
+  .brand .sub{font-family:var(--mono); font-size:10px; color:var(--muted); letter-spacing:2px}
+  .hgrow{flex:1}
+  .chip{font-family:var(--mono); font-size:10.5px; letter-spacing:1.5px; color:var(--muted);
+    border:1px solid var(--edge-soft); padding:6px 10px; border-radius:7px; display:flex; gap:7px; align-items:center}
+  .chip b{color:var(--ice); font-weight:500}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 1.6s infinite}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.8)}}
+  /* ---------- panels ---------- */
+  .panel{border:1px solid var(--edge-soft); border-radius:12px;
+    background:var(--panel); backdrop-filter:blur(9px); position:relative; overflow:hidden}
+  .panel-h{font-family:var(--mono); font-size:10px; letter-spacing:2.5px; color:var(--cyan-dim);
+    text-transform:uppercase; padding:11px 14px 0; display:flex; justify-content:space-between; align-items:center}
+  .panel-h .v{color:var(--faint)}
+  /* ---------- rail ---------- */
+  .rail{grid-area:rail; display:flex; flex-direction:column; gap:12px}
+  .rail .panel{padding-bottom:12px}
+  .seg{display:flex; flex-direction:column; gap:8px; padding:12px 12px 4px}
+  .scn{display:flex; flex-direction:column; gap:8px; padding:10px 12px}
+  .scn button{font-family:var(--disp); letter-spacing:1.5px; font-size:12.5px; text-align:left;
+    color:var(--ice); background:rgba(20,32,58,.5); border:1px solid var(--edge-soft);
+    padding:11px 12px; border-radius:9px; cursor:pointer; transition:.18s; position:relative; overflow:hidden}
+  .scn button .t{font-family:var(--mono); font-size:9px; color:var(--muted); letter-spacing:1px; display:block; margin-top:3px}
+  .scn button:hover{border-color:var(--edge); transform:translateX(2px)}
+  .scn button.on{border-color:var(--cyan); background:linear-gradient(180deg,rgba(65,224,208,.16),rgba(20,32,58,.5)); box-shadow:var(--glow)}
+  .scn button.on::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--cyan)}
+  .ctl{padding:6px 14px 2px}
+  .ctl label{font-family:var(--mono); font-size:9.5px; letter-spacing:1px; color:var(--muted);
+    display:flex; justify-content:space-between; margin-bottom:6px}
+  .ctl label b{color:var(--cyan)}
+  input[type=range]{-webkit-appearance:none; width:100%; height:3px; border-radius:3px;
+    background:linear-gradient(90deg,var(--cyan) var(--p,40%),rgba(120,150,210,.2) var(--p,40%)); outline:none; margin-bottom:12px}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:13px;height:13px;border-radius:50%;
+    background:var(--cyan); cursor:pointer; box-shadow:0 0 10px var(--cyan); border:2px solid #06121e}
+  .btn-an{margin:6px 12px 2px; font-family:var(--disp); letter-spacing:3px; font-size:13px; font-weight:600;
+    color:#04131a; background:linear-gradient(180deg,var(--cyan),var(--cyan-dim)); border:none;
+    padding:12px; border-radius:9px; cursor:pointer; box-shadow:var(--glow); transition:.15s}
+  .btn-an:hover{filter:brightness(1.1)} .btn-an:active{transform:scale(.98)}
+  /* ---------- viewport ---------- */
+  .view{grid-area:view; position:relative}
+  #scene{position:absolute; inset:0; border-radius:12px}
+  .vgrid{position:absolute; inset:0; pointer-events:none; border-radius:12px;
+    background-image:linear-gradient(rgba(95,225,212,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(95,225,212,.045) 1px,transparent 1px);
+    background-size:42px 42px; mask:radial-gradient(circle at 50% 50%,#000 60%,transparent 100%)}
+  .scan{position:absolute; left:0; right:0; height:140px; pointer-events:none; border-radius:12px;
+    background:linear-gradient(180deg,transparent,rgba(65,224,208,.06),transparent); animation:scan 7s linear infinite; opacity:.7}
+  @keyframes scan{0%{top:-140px}100%{top:100%}}
+  .reticle{position:absolute;left:18px;top:14px;font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--muted)}
+  .reticle b{color:var(--cyan)}
+  .corner{position:absolute;width:22px;height:22px;border:1.5px solid var(--edge)}
+  .corner.tl{top:10px;left:10px;border-right:0;border-bottom:0}
+  .corner.tr{top:10px;right:10px;border-left:0;border-bottom:0}
+  .corner.bl{bottom:10px;left:10px;border-right:0;border-top:0}
+  .corner.br{bottom:10px;right:10px;border-left:0;border-top:0}
+  .vstat{position:absolute;right:16px;bottom:14px;font-family:var(--mono);font-size:10px;color:var(--muted);text-align:right;line-height:1.6}
+  .vstat b{color:var(--ice)}
+  /* ---------- charts ---------- */
+  .charts{grid-area:charts; display:grid; grid-template-columns:1fr 1fr; gap:12px}
+  .charts .panel{display:flex; flex-direction:column}
+  canvas.chart{flex:1; width:100%; height:100%}
+  /* ---------- hud ---------- */
+  .hud{grid-area:hud; display:flex; flex-direction:column; gap:12px; min-height:0; overflow:hidden}
+  .verdict{padding:16px 16px 18px; position:relative}
+  .verdict .lab{font-family:var(--mono);font-size:10px;letter-spacing:2.5px;color:var(--cyan-dim)}
+  .vmain{display:flex; align-items:center; gap:16px; margin-top:12px}
+  .ring{width:84px;height:84px;border-radius:50%;flex:0 0 auto; position:relative;
+    background:conic-gradient(var(--cyan) calc(var(--c,0)*1%), rgba(120,150,210,.13) 0);
+    display:flex;align-items:center;justify-content:center; transition:--c .6s}
+  .ring::after{content:"";position:absolute;inset:7px;border-radius:50%;background:var(--panel-solid)}
+  .ring span{position:relative;font-family:var(--mono);font-weight:700;font-size:19px;color:#fff}
+  .ring small{position:relative;font-family:var(--mono);font-size:9px;color:var(--muted);display:block;text-align:center;margin-top:-2px}
+  .vlabel{flex:1}
+  .vlabel .cls{font-family:var(--disp);font-weight:700;font-size:21px;line-height:1.1;letter-spacing:.5px}
+  .vlabel .clss{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;color:var(--muted);margin-top:6px}
+  .badge{display:inline-block;font-family:var(--mono);font-size:9.5px;letter-spacing:1.5px;padding:3px 8px;border-radius:5px;margin-top:9px}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 16px}
+  .stat{background:rgba(10,18,36,.55);border:1px solid var(--edge-soft);border-radius:9px;padding:10px 12px}
+  .stat .k{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;color:var(--muted)}
+  .stat .val{font-family:var(--mono);font-weight:700;font-size:20px;color:#fff;margin-top:3px}
+  .stat .val u{font-style:normal;font-size:11px;color:var(--faint);font-weight:400;margin-left:3px}
+  .pm{font-family:var(--mono);font-size:9px;color:var(--cyan-dim);margin-top:4px}
+  .reasons{padding:12px 16px 16px; overflow:auto}
+  .reasons .r{font-family:var(--mono);font-size:10.5px;color:var(--ice);display:flex;gap:8px;margin:7px 0;line-height:1.5}
+  .reasons .r::before{content:"▸";color:var(--cyan);flex:0 0 auto}
+  /* loading */
+  #load{position:fixed;inset:0;background:var(--void);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:18px;z-index:50;transition:opacity .8s}
+  #load .ring2{width:46px;height:46px;border:2px solid rgba(65,224,208,.2);border-top-color:var(--cyan);border-radius:50%;animation:spin 1s linear infinite}
+  #load p{font-family:var(--mono);font-size:11px;letter-spacing:3px;color:var(--cyan-dim)}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .fade{opacity:0;pointer-events:none}
+  .reveal{opacity:0;animation:rise .7s cubic-bezier(.2,.7,.2,1) forwards}
+  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  @media (max-width:1100px){.app{grid-template-columns:200px 1fr 300px}}
+</style>
+</head>
+<body>
+<div id="load"><div class="ring2"></div><p>INITIALISING OBSERVATORY…</p></div>
+<div class="app">
+  <header class="reveal" style="animation-delay:.05s">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 40 40"><circle cx="20" cy="20" r="9" fill="none" stroke="#41e0d0" stroke-width="2"/><ellipse cx="20" cy="20" rx="18" ry="7" fill="none" stroke="#41e0d0" stroke-width="1.2" opacity=".6" transform="rotate(-25 20 20)"/><circle cx="34" cy="13" r="2.4" fill="#41e0d0"/></svg>
+      <div>
+        <h1>APEX<b>·</b>ORACLE</h1>
+        <div class="sub">EXOPLANET INSPECTOR // v0.9</div>
+      </div>
+    </div>
+    <div class="hgrow"></div>
+    <div class="chip"><span class="dot"></span> LIVE</div>
+    <div class="chip" id="modechip" style="border-color:rgba(255,179,71,.45);color:var(--amber)">◈ SIMULATION</div>
+    <div class="chip">SOURCE <b id="tic">SYNTHETIC</b></div>
+    <div class="chip">UTC <b id="clock">00:00:00</b></div>
+  </header>
+
+  <!-- left rail -->
+  <aside class="rail">
+    <div class="panel reveal" style="animation-delay:.12s">
+      <div class="panel-h">Scenario<span class="v">SELECT</span></div>
+      <div class="scn" id="scn">
+        <button data-k="planet" class="on">PLANET TRANSIT<span class="t">hot neptune · 3.41 d</span></button>
+        <button data-k="eb">ECLIPSING BINARY<span class="t">grazing · 2.15 d</span></button>
+        <button data-k="spot">STARSPOT / VARIABLE<span class="t">rotation · no transit</span></button>
+      </div>
+    </div>
+    <div class="panel reveal" style="animation-delay:.18s">
+      <div class="panel-h">Signal Controls</div>
+      <div class="ctl">
+        <label>ORBITAL RATE <b id="vrate">1.0×</b></label>
+        <input type="range" id="rate" min="20" max="240" value="90">
+        <label>TRANSIT DEPTH <b id="vdepth">900 ppm</b></label>
+        <input type="range" id="depth" min="0" max="30000" value="900" step="50">
+        <label>PHOTON NOISE <b id="vnoise">250 ppm</b></label>
+        <input type="range" id="noise" min="40" max="900" value="250" step="10">
+        <label>STELLAR JITTER <b id="vjit">1500 ppm</b></label>
+        <input type="range" id="jit" min="0" max="6000" value="1500" step="100">
+      </div>
+      <button class="btn-an" id="analyze">▶ RUN ANALYSIS</button>
+      <input type="file" id="file" accept=".csv,.txt" hidden>
+      <button id="loadbtn" style="margin:8px 12px 2px;font-family:var(--disp);letter-spacing:1.2px;font-size:11px;color:#cfe3ff;background:rgba(20,32,58,.6);border:1px solid var(--edge);padding:11px;border-radius:9px;cursor:pointer">⌬ LOAD REAL CSV  (time, flux)</button>
+      <div id="srcnote" style="font-family:var(--mono);font-size:8.5px;color:var(--faint);padding:7px 13px 2px;line-height:1.55">Demo uses simulated signals. Upload a real TESS light curve (CSV: time, flux) to run the same pipeline on real data.</div>
+      <div style="border-top:1px solid var(--edge-soft);margin:10px 12px 0;padding-top:9px;font-family:var(--mono);font-size:9px;letter-spacing:1.5px;color:var(--cyan-dim)">REAL ENGINE · apex-oracle serve</div>
+      <input id="engineTarget" value="WASP-18" spellcheck="false" style="margin:7px 12px 0;width:calc(100% - 24px);background:rgba(20,32,58,.6);border:1px solid var(--edge-soft);color:var(--ice);font-family:var(--mono);font-size:11px;padding:8px 10px;border-radius:7px;outline:none">
+      <button id="enginebtn" style="margin:7px 12px 2px;width:calc(100% - 24px);font-family:var(--disp);letter-spacing:1.5px;font-size:11.5px;font-weight:600;color:#04131a;background:linear-gradient(180deg,#5be08a,#2aa97a);border:none;padding:11px;border-radius:9px;cursor:pointer">⚡ ANALYZE VIA ENGINE</button>
+      <div style="font-family:var(--mono);font-size:8px;color:var(--faint);padding:5px 13px 2px;line-height:1.5">Target: a TIC id, a confirmed-planet name (WASP-18), or synthetic:planet. Calls the validated Python pipeline at <span id="engineApiLabel">127.0.0.1:8800</span>.</div>
+    </div>
+  </aside>
+
+  <!-- viewport -->
+  <section class="view panel reveal" style="animation-delay:.1s">
+    <canvas id="scene"></canvas>
+    <div class="vgrid"></div>
+    <div class="scan"></div>
+    <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
+    <div class="reticle">SYS // <b>TRANSIT GEOMETRY</b><br><span id="modeline">SIMULATED SIGNAL · load CSV for real data</span></div>
+    <div class="vstat">FLUX <b id="vflux">1.000000</b><br>PHASE <b id="vphase">0.000</b><br>FRAME <b id="vfps">60</b> fps</div>
+  </section>
+
+  <!-- bottom charts -->
+  <section class="charts">
+    <div class="panel reveal" style="animation-delay:.24s">
+      <div class="panel-h">Light Curve <span class="v">DETRENDED · LIVE</span></div>
+      <canvas id="lc" class="chart"></canvas>
+    </div>
+    <div class="panel reveal" style="animation-delay:.3s">
+      <div class="panel-h">Phase-Folded + Attention <span class="v" id="pfp">P = —</span></div>
+      <canvas id="pf" class="chart"></canvas>
+    </div>
+  </section>
+
+  <!-- right HUD -->
+  <aside class="hud">
+    <div class="panel verdict reveal" style="animation-delay:.16s">
+      <div class="lab">CLASSIFICATION // MULTIMODAL</div>
+      <div class="vmain">
+        <div class="ring" id="ring"><div><span id="conf">0</span><small>CONF</small></div></div>
+        <div class="vlabel">
+          <div class="cls" id="cls">ACQUIRING…</div>
+          <div class="clss" id="clss">awaiting signal</div>
+          <span class="badge" id="badge" style="background:rgba(127,147,189,.18);color:var(--muted)">STANDBY</span>
+        </div>
+      </div>
+    </div>
+    <div class="panel reveal" style="animation-delay:.22s" style2="">
+      <div class="panel-h">Physical Parameters<span class="v">BAYESIAN</span></div>
+      <div class="stats" style="padding-top:10px">
+        <div class="stat"><div class="k">PERIOD</div><div class="val"><span id="sp">—</span><u>d</u></div><div class="pm" id="ep">±—</div></div>
+        <div class="stat"><div class="k">DEPTH</div><div class="val"><span id="sd">—</span><u>ppm</u></div><div class="pm" id="ed">±—</div></div>
+        <div class="stat"><div class="k">DURATION</div><div class="val"><span id="su">—</span><u>h</u></div><div class="pm" id="eu">±—</div></div>
+        <div class="stat"><div class="k">SNR</div><div class="val"><span id="ss">—</span><u>σ</u></div><div class="pm" id="es">detection</div></div>
+      </div>
+      <div style="font-family:var(--mono);font-size:8.5px;color:var(--faint);padding:10px 16px 14px;line-height:1.5">METHOD · detrend → BLS period search → fold → estimate. Classifier is a rule-based stand-in for the trained Transformer; injection-recovery metrics pending.</div>
+    </div>
+    <div class="panel reveal" style="animation-delay:.28s; flex:1; display:flex; flex-direction:column; min-height:0">
+      <div class="panel-h">Signal Analysis <span class="v">XAI</span></div>
+      <div class="reasons" id="reasons"></div>
+    </div>
+  </aside>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ============================ DATA / PHYSICS ENGINE ============================ */
+const PRESET = {
+  planet:{ depth:900, noise:250, jitter:1500, rp:0.16, vshape:0.0, secondary:0.0, color:0x9fc6ff, label:"PLANET TRANSIT" },
+  eb:    { depth:12000,noise:300, jitter:1200, rp:0.46, vshape:1.0, secondary:0.35,color:0xff9d6b, label:"ECLIPSING BINARY" },
+  spot:  { depth:0,    noise:300, jitter:4200, rp:0.16, vshape:0.0, secondary:0.0, color:0xc7a6ff, label:"STARSPOT" }
+};
+const S = { kind:'planet', rate:90, depthPpm:900, noisePpm:250, jitPpm:1500,
+            angle:0, t:0, jitPeriod:6.2, jitPhase:Math.random()*6.28, analyzing:0 };
+const BINS=240, lcBuf=[], LC_MAX=520;
+let fold = new Float64Array(BINS), foldN = new Float64Array(BINS);
+
+function applyPreset(k){
+  S.kind=k; const p=PRESET[k];
+  S.depthPpm=p.depth; S.noisePpm=p.noise; S.jitPpm=p.jitter;
+  depth.value=p.depth; noise.value=p.noise; jit.value=p.jitter;
+  syncSliders(); resetFold(); setPlanet(p);
+}
+function resetFold(){ fold=new Float64Array(BINS); foldN=new Float64Array(BINS); lcBuf.length=0; }
+
+// transit shape as a function of projected separation (in star radii), b=half width
+function transitShape(sep, b, vshape){
+  if(sep>=b) return 0;
+  const u = 1 - sep/b;               // 0 at edge, 1 at centre  (V profile)
+  const flat = Math.min(1, u/0.35);  // broad flat bottom (U profile)
+  return vshape>0.5 ? u : flat;      // EB -> V, planet -> U
+}
+function randn(){ let u=0,v=0; while(!u)u=Math.random(); while(!v)v=Math.random();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(6.2831853*v); }
+
+// advance the simulation by dt seconds, return {flux, phase, inFront, sep}
+function step(dt){
+  const period = 220/S.rate;                 // seconds per orbit (slider-driven)
+  S.angle += 6.2831853*dt/period; if(S.angle>6.2831853)S.angle-=6.2831853;
+  S.t += dt;
+  const a=1.0, px=a*Math.cos(S.angle), pz=Math.sin(S.angle);
+  const inFront = pz>0;
+  const sep=Math.abs(px)/0.20;               // normalised to transit half-width window
+  const p=PRESET[S.kind];
+  let dip=0;
+  if(S.kind!=='spot'){
+    const shp=transitShape(sep,1.0,p.vshape);
+    if(inFront) dip = (S.depthPpm*1e-6)*shp;
+    else if(p.secondary>0){                  // secondary eclipse behind
+      dip = (S.depthPpm*1e-6)*p.secondary*transitShape(sep,1.0,1.0);
+    }
+  }
+  const jit=(S.jitPpm*1e-6)*Math.sin(6.2831853*S.t/S.jitPeriod + S.jitPhase)
+          + 0.4*(S.jitPpm*1e-6)*Math.sin(6.2831853*S.t/(S.jitPeriod*0.5));
+  // detrended view: jitter largely removed, small residual kept for realism
+  const flux = 1 - dip + 0.06*jit + (S.noisePpm*1e-6)*randn();
+  // fold by orbital phase (transit centred at phase .5)
+  const ph=(S.angle/6.2831853 + 0.25)%1;
+  const bi=Math.min(BINS-1, Math.max(0,(ph*BINS)|0));
+  fold[bi]+=flux; foldN[bi]+=1;
+  lcBuf.push(flux); if(lcBuf.length>LC_MAX)lcBuf.shift();
+  return {flux, phase:ph, inFront, sep, period};
+}
+
+// analyse the folded buffer -> params + classification
+function buildProf(fA,fN){
+  const prof=new Float64Array(BINS); let have=0;
+  for(let i=0;i<BINS;i++){ if(fN[i]>0){prof[i]=fA[i]/fN[i];have++;} else prof[i]=NaN; }
+  return have>=BINS*0.5 ? prof : null;
+}
+function analyseProfile(prof, pDays, perPt){
+  const C=i=>i/BINS-0.5;
+  const medRegion=(lo,hi)=>{const a=[];for(let i=0;i<BINS;i++){const c=Math.abs(C(i));
+    if(c>=lo&&c<hi&&!isNaN(prof[i]))a.push(prof[i]);} return a.length?median(a):baseline;};
+  const oot=[]; for(let i=0;i<BINS;i++){ if(!isNaN(prof[i]) && Math.abs(C(i))>0.15) oot.push(prof[i]); }
+  const baseline=median(oot), ootRms=std(oot);
+  let minv=Infinity; for(let i=0;i<BINS;i++){ if(Math.abs(C(i))<0.06 && !isNaN(prof[i]) && prof[i]<minv)minv=prof[i]; }
+  const depth0=Math.max(baseline-minv,1e-9);                       // rough peak dip
+  let win=0; for(let i=0;i<BINS;i++){ if(Math.abs(C(i))<0.2 && !isNaN(prof[i]) && (baseline-prof[i])>0.5*depth0) win++; }
+  const durPhase=Math.max(win/BINS,2/BINS), halfDur=durPhase/2;
+  const depth=Math.max(baseline-medRegion(0,0.4*halfDur),0);       // robust floor (median, not min bin)
+  let wHalf=0,wDeep=0;
+  for(let i=0;i<BINS;i++){ if(Math.abs(C(i))<0.25 && !isNaN(prof[i])){ const d=baseline-prof[i];
+    if(d>0.5*depth)wHalf++; if(d>0.85*depth)wDeep++; } }
+  const flatness = wHalf>0 ? wDeep/wHalf : 0;                      // U~1 (flat floor), V~<0.4 (pointed)
+  const sec=Math.max(baseline-medRegion(0.46,0.5),0);             // robust secondary near phase .5
+  const Neff=64, pp=(perPt||ootRms||1e-6);
+  const snr = depth/(pp/Math.sqrt(Neff));
+  const localized = depth > 2.5*ootRms;
+  const durH = durPhase*pDays*24;
+  const dErr = pp*1e6/Math.sqrt(Neff);          // depth uncertainty (ppm)
+  const uErr = (1/BINS)*pDays*24;               // duration uncertainty (h, one phase bin)
+  const pErr = Math.max(0.001, pDays/BINS);     // period uncertainty (d, fold resolution)
+  let label, conf, badge, col, reasons=[];
+  if(snr<8 || depth*1e6<50 || !localized || durPhase>0.18){
+    label="STARSPOT / NO TRANSIT"; col="var(--muted)";
+    if(durPhase>0.18 || !localized) reasons=["dip too broad / not localized — sinusoidal rotational modulation",`width ${(durPhase*100).toFixed(0)}% of phase`,`SNR ${snr.toFixed(1)} σ`];
+    else reasons=[`low SNR (${snr.toFixed(1)} σ)`,"no convincing periodic dip"];
+    conf=Math.min(0.6+Math.min(snr,8)*0.03,0.9); badge="REJECTED";
+  } else {
+    let eb=0;
+    if(flatness<0.55){eb+=.6;reasons.push(`V-shaped profile (sharpness ${flatness.toFixed(2)})`)}
+    if(sec>0.3*depth && sec>3*ootRms){eb+=.4;reasons.push("secondary eclipse detected")}
+    if(depth*1e6>30000){eb+=.5;reasons.push("very deep (>3%) eclipse")}
+    if(eb>=0.5){ label="ECLIPSING BINARY / BLEND"; col="var(--amber)"; conf=Math.min(.55+eb/2,.98); badge="FLAGGED"; }
+    else{ label="PLANET TRANSIT"; col="var(--green)";
+      reasons.push(`U-shaped achromatic dip (flatness ${flatness.toFixed(2)})`);
+      reasons.push(`SNR ${snr.toFixed(1)} σ · depth ${(depth*1e6).toFixed(0)} ppm`);
+      reasons.push("centroid on-target · odd–even consistent");
+      conf=Math.min(.7+(snr-8)*0.006+(flatness-0.55)*0.3,.985); badge="CONFIRMED CANDIDATE"; }
+  }
+  return {prof,baseline,depthPpm:depth*1e6,durH,snr,pDays,label,conf,badge,col,reasons,
+          secPpm:sec*1e6,flatness,pErr,dErr,uErr};
+}
+function analyse(period){
+  const prof=buildProf(fold,foldN); if(!prof) return null;
+  const pDays={planet:3.41, eb:2.15, spot:3.40}[S.kind];
+  return analyseProfile(prof, pDays, S.noisePpm*1e-6);
+}
+const median=a=>{ if(!a.length)return 1; const b=[...a].sort((x,y)=>x-y); const m=b.length>>1;
+  return b.length%2?b[m]:(b[m-1]+b[m])/2; };
+const std=a=>{ if(a.length<2)return 0; const m=a.reduce((s,x)=>s+x,0)/a.length;
+  return Math.sqrt(a.reduce((s,x)=>s+(x-m)*(x-m),0)/a.length); };
+
+/* ============================ THREE.JS SCENE ============================ */
+let renderer,scene,cam,star,planet,glowS,glow2,ring,field,plight;
+function glowTex(c){
+  const cv=document.createElement('canvas');cv.width=cv.height=128;const x=cv.getContext('2d');
+  const g=x.createRadialGradient(64,64,0,64,64,64);
+  g.addColorStop(0,c);g.addColorStop(.25,c);g.addColorStop(1,'rgba(0,0,0,0)');
+  x.fillStyle=g;x.fillRect(0,0,128,128);return new THREE.CanvasTexture(cv);
+}
+function initScene(){
+  const cv=document.getElementById('scene');
+  renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  scene=new THREE.Scene();
+  cam=new THREE.PerspectiveCamera(42,1,0.1,100); cam.position.set(0,1.1,7.6);
+  // star
+  star=new THREE.Mesh(new THREE.SphereGeometry(1.55,64,64),
+        new THREE.MeshBasicMaterial({color:0xfff1d6}));
+  scene.add(star);
+  glowS=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex('rgba(120,200,255,0.9)'),
+        blending:THREE.AdditiveBlending,transparent:true,depthWrite:false}));
+  glowS.scale.set(8.5,8.5,1); scene.add(glowS);
+  glow2=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex('rgba(255,240,210,0.95)'),
+        blending:THREE.AdditiveBlending,transparent:true,depthWrite:false}));
+  glow2.scale.set(4.6,4.6,1); scene.add(glow2);
+  // planet
+  planet=new THREE.Mesh(new THREE.SphereGeometry(0.16,40,40),
+        new THREE.MeshStandardMaterial({color:0x9fc6ff,roughness:.7,metalness:.1,
+        emissive:0x0a1830,emissiveIntensity:.4}));
+  scene.add(planet);
+  plight=new THREE.PointLight(0xfff0d8,2.2,40); plight.position.set(0,0,0); scene.add(plight);
+  scene.add(new THREE.AmbientLight(0x223355,0.6));
+  // orbit ring
+  const pts=[]; for(let i=0;i<=160;i++){const a=i/160*6.2831853;pts.push(new THREE.Vector3(Math.cos(a)*4.6,0,Math.sin(a)*4.6));}
+  ring=new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),
+        new THREE.LineBasicMaterial({color:0x41e0d0,transparent:true,opacity:.28}));
+  ring.rotation.x=0.06; scene.add(ring);
+  // starfield
+  const N=900,pos=new Float32Array(N*3);
+  for(let i=0;i<N;i++){const r=26+Math.random()*30,th=Math.random()*6.283,ph=Math.acos(2*Math.random()-1);
+    pos[i*3]=r*Math.sin(ph)*Math.cos(th);pos[i*3+1]=r*Math.sin(ph)*Math.sin(th);pos[i*3+2]=r*Math.cos(ph);}
+  const fg=new THREE.BufferGeometry(); fg.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  field=new THREE.Points(fg,new THREE.PointsMaterial({color:0x9fb8e6,size:0.13,transparent:true,opacity:.8}));
+  scene.add(field);
+  resize();
+}
+function setPlanet(p){
+  planet.geometry.dispose();
+  planet.geometry=new THREE.SphereGeometry(p.rp,40,40);
+  planet.material.color.setHex(p.color);
+  planet.visible = S.kind!=='spot';
+  ring.visible = S.kind!=='spot';
+}
+function resize(){
+  const v=document.querySelector('.view'); const w=v.clientWidth,h=v.clientHeight;
+  renderer.setSize(w,h,false); cam.aspect=w/h; cam.updateProjectionMatrix();
+}
+addEventListener('resize',()=>{resize();sizeCharts();});
+
+/* ============================ CHARTS (canvas) ============================ */
+function sizeCharts(){ [lc,pf].forEach(c=>{const r=c.getBoundingClientRect();
+  c.width=r.width*devicePixelRatio; c.height=r.height*devicePixelRatio;}); }
+function drawLC(data){
+  const buf=data||lcBuf, N=Math.max(buf.length,2);
+  const c=lc,x=c.getContext('2d'),W=c.width,H=c.height; x.clearRect(0,0,W,H);
+  const pad=10*devicePixelRatio;
+  x.strokeStyle='rgba(95,225,212,0.08)';x.lineWidth=1;
+  for(let i=0;i<=4;i++){const y=pad+(H-2*pad)*i/4;x.beginPath();x.moveTo(pad,y);x.lineTo(W-pad,y);x.stroke();}
+  if(buf.length<2)return;
+  let mn=Infinity,mx=-Infinity; for(const f of buf){if(f<mn)mn=f;if(f>mx)mx=f;}
+  const span=Math.max(mx-mn,1e-4)*1.25, mid=(mx+mn)/2;
+  const lo=mid-span/2, hi=mid+span/2;
+  x.lineWidth=2*devicePixelRatio; x.strokeStyle='#41e0d0'; x.shadowBlur=10;x.shadowColor='#41e0d0';
+  x.beginPath();
+  for(let i=0;i<buf.length;i++){const px=pad+(W-2*pad)*i/(N-1);
+    const py=pad+(H-2*pad)*(1-(buf[i]-lo)/(hi-lo)); i?x.lineTo(px,py):x.moveTo(px,py);}
+  x.stroke(); x.shadowBlur=0;
+  if(!data){ const i=buf.length-1,px=pad+(W-2*pad)*i/(LC_MAX-1),py=pad+(H-2*pad)*(1-(buf[i]-lo)/(hi-lo));
+    x.fillStyle='#fff';x.beginPath();x.arc(px,py,3*devicePixelRatio,0,6.283);x.fill(); }
+}
+function drawPF(res){
+  const c=pf,x=c.getContext('2d'),W=c.width,H=c.height; x.clearRect(0,0,W,H);
+  const pad=10*devicePixelRatio;
+  x.strokeStyle='rgba(95,225,212,0.08)';x.lineWidth=1;
+  for(let i=0;i<=4;i++){const y=pad+(H-2*pad)*i/4;x.beginPath();x.moveTo(pad,y);x.lineTo(W-pad,y);x.stroke();}
+  if(!res){return;}
+  const prof=res.prof; let mn=Infinity,mx=-Infinity;
+  for(let i=0;i<BINS;i++){if(!isNaN(prof[i])){if(prof[i]<mn)mn=prof[i];if(prof[i]>mx)mx=prof[i];}}
+  const span=Math.max(mx-mn,1e-4)*1.2, lo=(mx+mn)/2-span/2, hi=(mx+mn)/2+span/2;
+  // attention band (transit window around centre)
+  const durP=Math.max(res.durH/(res.pDays*24),0.02);
+  const x0=pad+(W-2*pad)*(0.5-durP), x1=pad+(W-2*pad)*(0.5+durP);
+  x.fillStyle='rgba(255,93,108,0.12)'; if(res.label.startsWith('PLANET'))x.fillStyle='rgba(91,224,138,0.12)';
+  x.fillRect(x0,pad,x1-x0,H-2*pad);
+  x.fillStyle='rgba(207,227,255,.35)';x.font=`${9*devicePixelRatio}px JetBrains Mono`;x.fillText('ATTENTION',x0+4,pad+12*devicePixelRatio);
+  // points
+  x.fillStyle='rgba(159,184,230,.5)';
+  for(let i=0;i<BINS;i++){if(isNaN(prof[i]))continue;const px=pad+(W-2*pad)*i/BINS;
+    const py=pad+(H-2*pad)*(1-(prof[i]-lo)/(hi-lo));x.beginPath();x.arc(px,py,1.4*devicePixelRatio,0,6.283);x.fill();}
+  // model line (smoothed)
+  x.strokeStyle=res.label.startsWith('PLANET')?'#5be08a':res.label.startsWith('ECLIPSING')?'#ffb347':'#7f93bd';
+  x.lineWidth=2.2*devicePixelRatio;x.shadowBlur=8;x.shadowColor=x.strokeStyle;x.beginPath();let started=0;
+  for(let i=0;i<BINS;i++){if(isNaN(prof[i]))continue;const px=pad+(W-2*pad)*i/BINS;
+    const py=pad+(H-2*pad)*(1-(prof[i]-lo)/(hi-lo));started?x.lineTo(px,py):x.moveTo(px,py);started=1;}
+  x.stroke();x.shadowBlur=0;
+}
+
+/* ============================ HUD + LOOP ============================ */
+let disp={conf:0,sp:0,sd:0,su:0,ss:0}, target={conf:0,sp:0,sd:0,su:0,ss:0}, lastRes=null;
+function updateHUD(res){
+  if(!res)return; lastRes=res;
+  target.conf=res.conf*100; target.sp=res.pDays; target.sd=res.depthPpm; target.su=res.durH; target.ss=res.snr;
+  document.getElementById('cls').textContent=res.label;
+  document.getElementById('cls').style.color=res.col;
+  document.getElementById('clss').textContent=res.reasons[0]||'';
+  const b=document.getElementById('badge'); b.textContent=res.badge;
+  const bg=res.label.startsWith('PLANET')?'rgba(91,224,138,.16)':res.label.startsWith('ECLIPSING')?'rgba(255,179,71,.16)':'rgba(127,147,189,.18)';
+  b.style.background=bg; b.style.color=res.col;
+  document.getElementById('pfp').textContent='P = '+res.pDays.toFixed(2)+' d';
+  document.getElementById('ep').textContent='± '+res.pErr.toFixed(2);
+  document.getElementById('ed').textContent='± '+Math.round(res.dErr).toLocaleString()+' ppm';
+  document.getElementById('eu').textContent='± '+res.uErr.toFixed(2)+' h';
+  const R=document.getElementById('reasons'); R.innerHTML='';
+  res.reasons.forEach((r,i)=>{const d=document.createElement('div');d.className='r';d.textContent=r;
+    d.style.opacity=0;d.style.animation=`rise .5s ${i*.07}s forwards`;R.appendChild(d);});
+}
+function lerpHUD(){
+  for(const k in disp){disp[k]+=(target[k]-disp[k])*0.08;}
+  document.getElementById('conf').textContent=Math.round(disp.conf);
+  document.getElementById('ring').style.setProperty('--c',disp.conf);
+  document.getElementById('ring').style.background=
+    `conic-gradient(${lastRes?lastRes.col:'var(--cyan)'} calc(${disp.conf}*1%), rgba(120,150,210,.13) 0)`;
+  document.getElementById('sp').textContent=disp.sp.toFixed(2);
+  document.getElementById('sd').textContent=Math.round(disp.sd).toLocaleString();
+  document.getElementById('su').textContent=disp.su.toFixed(2);
+  document.getElementById('ss').textContent=disp.ss.toFixed(1);
+}
+let last=performance.now(),acc=0,fcount=0,ftime=0,analyseAcc=0;
+function loop(now){
+  const dt=Math.min((now-last)/1000,0.05); last=now; ftime+=dt;fcount++;
+  if(ftime>0.5){document.getElementById('vfps').textContent=Math.round(fcount/ftime);fcount=0;ftime=0;}
+  if(window.realMode){
+    if(window.sceneOK){ star.rotation.y+=dt*0.05; field.rotation.y+=dt*0.006;
+      glowS.position.copy(star.position); glow2.position.copy(star.position);
+      cam.position.x=Math.sin(now*0.00007)*0.5; cam.lookAt(0,0,0); renderer.render(scene,cam); }
+    lerpHUD(); requestAnimationFrame(loop); return;
+  }
+  // simulate several substeps for smooth fold coverage
+  let r; for(let i=0;i<3;i++) r=step(dt/3);
+  if(window.sceneOK){
+    const a=4.6, px=Math.cos(S.angle)*a, pz=Math.sin(S.angle)*a;
+    if(planet.visible){planet.position.set(px,0,pz); planet.rotation.y+=dt*0.6;}
+    star.rotation.y+=dt*0.05; field.rotation.y+=dt*0.006; ring.rotation.z+=dt*0.01;
+    glowS.position.copy(star.position); glow2.position.copy(star.position);
+    const dim = 1 - (1-r.flux)*6; star.material.color.setRGB(1*dim,0.945*dim,0.84*dim);
+    cam.position.x=Math.sin(now*0.00007)*0.5; cam.lookAt(0,0,0);
+    renderer.render(scene,cam);
+  }
+  drawLC();
+  analyseAcc+=dt;
+  if(analyseAcc>0.25){ analyseAcc=0; const res=analyse(r.period); if(res){updateHUD(res);drawPF(res);} }
+  lerpHUD();
+  document.getElementById('vflux').textContent=r.flux.toFixed(6);
+  document.getElementById('vphase').textContent=r.phase.toFixed(3);
+  requestAnimationFrame(loop);
+}
+/* ============================ UI WIRING ============================ */
+const depth=document.getElementById('depth'),noise=document.getElementById('noise'),
+      jit=document.getElementById('jit'),rate=document.getElementById('rate');
+function syncSliders(){
+  S.depthPpm=+depth.value;S.noisePpm=+noise.value;S.jitPpm=+jit.value;S.rate=+rate.value;
+  vdepth.textContent=(+depth.value).toLocaleString()+' ppm';
+  vnoise.textContent=(+noise.value)+' ppm'; vjit.textContent=(+jit.value).toLocaleString()+' ppm';
+  vrate.textContent=((+rate.value)/90).toFixed(1)+'×';
+  [[depth,30000],[noise,900],[jit,6000],[rate,240]].forEach(([el,mx])=>
+    el.style.setProperty('--p',(100*el.value/mx)+'%'));
+}
+[depth,noise,jit,rate].forEach(el=>el.addEventListener('input',()=>{syncSliders();}));
+document.querySelectorAll('#scn button').forEach(btn=>btn.addEventListener('click',()=>{
+  document.querySelectorAll('#scn button').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on'); setMode(false); applyPreset(btn.dataset.k);
+}));
+document.getElementById('analyze').addEventListener('click',()=>{ resetFold();
+  const b=document.getElementById('analyze'); b.textContent='◇ ANALYSING…';
+  setTimeout(()=>b.textContent='▶ RUN ANALYSIS',1200); });
+function clock(){const d=new Date();document.getElementById('clock').textContent=
+  d.toUTCString().slice(17,25);} setInterval(clock,1000);clock();
+/* ============================ REAL DATA PATH ============================ */
+function parseSeries(text){
+  const t=[],f=[]; text.split(/\r?\n/).forEach(ln=>{
+    const s=ln.trim(); if(!s||/^[a-zA-Z#]/.test(s))return;
+    const m=s.split(/[\s,;]+/).map(Number);
+    if(m.length>=2 && isFinite(m[0]) && isFinite(m[1])){t.push(m[0]);f.push(m[1]);}
+  });
+  return {t,f};
+}
+function detrendJS(f){
+  const med=median([...f])||1; const fn=f.map(v=>v/med);
+  const w=Math.max(5,(fn.length/20)|0); const out=new Array(fn.length);
+  for(let i=0;i<fn.length;i++){let s=0,c=0;
+    for(let j=Math.max(0,i-w);j<Math.min(fn.length,i+w);j++){s+=fn[j];c++;}
+    out[i]=fn[i]/(s/c);}
+  return out;
+}
+function foldBin(t,f,period,t0,nb){
+  const A=new Float64Array(nb),B=new Float64Array(nb);
+  for(let i=0;i<t.length;i++){const ph=(((t[i]-t0)/period)%1+1)%1;const b=Math.min(nb-1,(ph*nb)|0);A[b]+=f[i];B[b]++;}
+  return {A,B};
+}
+function estNoise(f){ const d=[]; for(let i=1;i<f.length;i++)d.push(Math.abs(f[i]-f[i-1]));
+  return (median(d)/1.128)||1e-4; }
+function blsJS(t,f){
+  const span=t[t.length-1]-t[0]; if(span<=0)return{period:1,t0:t[0]};
+  const pmin=Math.max(0.4,span/200), pmax=Math.min(span/2,25), nP=900, nb=120;
+  const fm=f.map(v=>v-1); let best=-Infinity,bp=pmin,bt0=t[0];
+  for(let k=0;k<nP;k++){ const P=pmin*Math.pow(pmax/pmin,k/(nP-1));
+    const {A,B}=foldBin(t,fm,P,t[0],nb); let mn=Infinity,mi=0;
+    for(let b=0;b<nb;b++){ if(B[b]>0){const m=A[b]/B[b]; if(m<mn){mn=m;mi=b;}} }
+    const pw=-mn*Math.sqrt(B[mi]||1); if(pw>best){best=pw;bp=P;bt0=t[0]+(mi+0.5)/nb*P;} }
+  const pwAt=P=>{const {A,B}=foldBin(t,fm,P,t[0],nb);let mn=Infinity,mi=0;
+    for(let b=0;b<nb;b++){if(B[b]>0){const m=A[b]/B[b];if(m<mn){mn=m;mi=b;}}}
+    return {pw:-mn*Math.sqrt(B[mi]||1),t0:t[0]+(mi+0.5)/nb*P};};
+  let cand=bp,candT0=bt0;                                 // de-alias toward the fundamental
+  for(const div of [3,2]){ const Pd=bp/div; if(Pd>=pmin){ const r=pwAt(Pd);
+    if(r.pw>=0.85*best){ cand=Pd; candT0=r.t0; break; } } }
+  return {period:cand,t0:candT0};
+}
+function downsample(a,n){ if(a.length<=n)return a.slice(); const o=[],s=a.length/n;
+  for(let i=0;i<n;i++)o.push(a[Math.floor(i*s)]); return o; }
+function setMode(real,name){
+  window.realMode=real;
+  const mc=document.getElementById('modechip'),tic=document.getElementById('tic'),ml=document.getElementById('modeline');
+  if(real){ mc.textContent='◉ REAL DATA'; mc.style.color='var(--green)'; mc.style.borderColor='rgba(91,224,138,.45)';
+    tic.textContent=(name||'USER CSV').slice(0,16); ml.textContent='REAL DATA · '+(name||'user upload');
+    if(window.sceneOK){planet.visible=false; ring.visible=false;} }
+  else { mc.textContent='◈ SIMULATION'; mc.style.color='var(--amber)'; mc.style.borderColor='rgba(255,179,71,.45)';
+    tic.textContent='SYNTHETIC'; ml.textContent='SIMULATED SIGNAL · load CSV for real data'; }
+}
+function runReal(t,fRaw,name){
+  if(t.length<30){alert('Need at least ~30 valid (time, flux) rows.');return;}
+  const flat=detrendJS(fRaw); const {period,t0}=blsJS(t,flat);
+  const {A,B}=foldBin(t,flat,period,t0-0.5*period,BINS); const prof=buildProf(A,B);
+  if(!prof){alert('Could not fold this light curve — check coverage.');return;}
+  const res=analyseProfile(prof,period,estNoise(flat));
+  setMode(true,name); drawLC(downsample(flat,LC_MAX)); drawPF(res); updateHUD(res);
+}
+document.getElementById('loadbtn').addEventListener('click',()=>document.getElementById('file').click());
+document.getElementById('file').addEventListener('change',e=>{ const file=e.target.files[0]; if(!file)return;
+  const rd=new FileReader(); rd.onload=()=>{ try{const {t,f}=parseSeries(rd.result); runReal(t,f,file.name);}
+    catch(err){alert('Failed to parse CSV: '+err.message);} }; rd.readAsText(file); });
+
+/* ===== REAL ENGINE (apex-oracle serve) ===== */
+// Same-origin when served by the backend; ?api=https://host overrides; localhost for file://.
+const ENGINE_API=(new URLSearchParams(location.search).get('api')
+  || (location.protocol.startsWith('http') ? location.origin : 'http://127.0.0.1:8800')).replace(/\/$/,'');
+try{document.getElementById('engineApiLabel').textContent=ENGINE_API.replace(/^https?:\/\//,'');}catch(e){}
+const LABELMAP={transit:'PLANET TRANSIT',eclipse:'ECLIPSING BINARY / BLEND',starspot:'STARSPOT / NO TRANSIT'};
+const COLMAP={transit:'var(--green)',eclipse:'var(--amber)',starspot:'var(--muted)'};
+const BADGEMAP={transit:'CONFIRMED CANDIDATE',eclipse:'FLAGGED',starspot:'REJECTED'};
+function renderBackendResult(data){
+  setMode(true, data.source||'engine');
+  const ph=data.folded_curve.phase, fl=data.folded_curve.flux;
+  const sum=new Float64Array(BINS), cnt=new Float64Array(BINS), prof=new Float64Array(BINS);
+  for(let i=0;i<ph.length;i++){const b=Math.min(BINS-1,Math.max(0,Math.floor((ph[i]+0.5)*BINS)));sum[b]+=fl[i];cnt[b]++;}
+  for(let b=0;b<BINS;b++) prof[b]=cnt[b]>0?sum[b]/cnt[b]:NaN;
+  const P=data.parameters;
+  const res={prof, label:LABELMAP[data.classification]||String(data.classification).toUpperCase(),
+    col:COLMAP[data.classification]||'var(--cyan)', conf:data.confidence,
+    badge:BADGEMAP[data.classification]||'ENGINE',
+    pDays:P.period_days[0], depthPpm:P.depth_ppm[0], durH:P.duration_hours[0], snr:P.snr,
+    pErr:P.period_days[1], dErr:P.depth_ppm[1], uErr:P.duration_hours[1], reasons:data.reasons};
+  updateHUD(res); drawPF(res); drawLC(fl);
+  const mc=document.getElementById('modechip');
+  mc.textContent='◆ REAL ENGINE'; mc.style.color='var(--cyan)'; mc.style.borderColor='rgba(65,224,208,.5)';
+  document.getElementById('tic').textContent=(data.source||'engine').slice(0,16);
+  document.getElementById('modeline').textContent='VALIDATED ENGINE · '+(data.source||'');
+}
+async function analyzeViaEngine(){
+  const target=(document.getElementById('engineTarget').value||'').trim()||'synthetic:planet';
+  const btn=document.getElementById('enginebtn'); const old=btn.textContent;
+  btn.textContent='◇ CALLING ENGINE…'; btn.disabled=true;
+  try{
+    const r=await fetch(ENGINE_API+'/analyze',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({source:target})});
+    const data=await r.json();
+    if(!r.ok) throw new Error(data.error||('HTTP '+r.status));
+    renderBackendResult(data);
+  }catch(e){ alert('Engine call failed: '+e.message+'\n\nStart the API with:  apex-oracle serve'); }
+  finally{ btn.textContent=old; btn.disabled=false; }
+}
+document.getElementById('enginebtn').addEventListener('click', analyzeViaEngine);
+
+/* boot */
+window.addEventListener('load',()=>{
+  try{ initScene(); window.sceneOK=true; }
+  catch(err){ window.sceneOK=false;
+    document.querySelector('.view').insertAdjacentHTML('beforeend',
+      '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;font-family:var(--mono);font-size:12px;color:var(--muted);padding:30px">WebGL unavailable here — charts and analysis still run.</div>'); }
+  sizeCharts(); syncSliders(); applyPreset('planet');
+  setTimeout(()=>{document.getElementById('load').classList.add('fade');},650);
+  requestAnimationFrame(loop);
+});
+</script>
+</body>
+</html>

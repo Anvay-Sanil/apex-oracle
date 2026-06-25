@@ -1,0 +1,20 @@
+# Keep the Docker build context lean (the Dockerfile only needs pyproject, README, src, app/inspector)
+.git
+**/__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+data/
+outputs/
+temp/
+deck/
+council/
+tests/
+scripts/
+.claude/
+*.pptx
+*.pdf
+*.log

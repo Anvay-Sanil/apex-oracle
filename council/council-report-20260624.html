@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Council Report — ISRO Hackathon 2026 Architecture Selection</title>
+<style>
+  :root { --ink:#1a1a1a; --muted:#5f5e5a; --line:#e4e2da; --bg:#faf9f5; --card:#ffffff; --info:#185fa5; --infobg:#e6f1fb; --teal:#0f6e56; --tealbg:#e1f5ee; --amber:#854f0b; --amberbg:#faeeda; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; line-height:1.6; }
+  .wrap { max-width:860px; margin:0 auto; padding:40px 24px 64px; }
+  h1 { font-size:26px; font-weight:600; margin:0 0 4px; }
+  h2 { font-size:19px; font-weight:600; margin:32px 0 12px; }
+  .sub { color:var(--muted); font-size:14px; margin:0 0 24px; }
+  .q { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px 20px; font-size:15px; }
+  .verdict { background:var(--infobg); border:1px solid #b5d4f4; border-radius:12px; padding:20px 22px; margin:18px 0; }
+  .verdict h3 { margin:0 0 6px; color:var(--info); font-size:16px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin:12px 0; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px 18px; }
+  .card h4 { margin:0 0 2px; font-size:16px; }
+  .tag { display:inline-block; font-size:12px; padding:2px 10px; border-radius:8px; margin-bottom:10px; }
+  .tag.a { background:var(--amberbg); color:var(--amber); }
+  .tag.b { background:var(--infobg); color:var(--info); }
+  .tag.c { background:var(--tealbg); color:var(--teal); }
+  ul { margin:6px 0 0; padding-left:18px; } li { margin:3px 0; font-size:14px; }
+  .adv { border-left:3px solid var(--line); padding:4px 0 4px 14px; margin:10px 0; font-size:14px; }
+  .adv b { color:var(--ink); }
+  table { width:100%; border-collapse:collapse; font-size:13px; margin-top:8px; }
+  td,th { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); }
+  th { color:var(--muted); font-weight:600; }
+  footer { margin-top:40px; color:var(--muted); font-size:12px; border-top:1px solid var(--line); padding-top:14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Council Report — Architecture Selection</h1>
+  <p class="sub">Bharatiya Antariksh Hackathon 2026 · AI exoplanet detection from TESS light curves · 2026-06-24</p>
+
+  <h2>The question</h2>
+  <div class="q">Which of three candidate architectures should we build to win 1st place, given physicist judges who distrust black-box AI, a ~48h build, scarce labels, single-sector data gaps, crowded-field blending, and correlated stellar noise? The pipeline must detect, classify (transit / eclipse / blend / starspot), estimate parameters, report confidence, and explain itself.</div>
+
+  <div class="verdict">
+    <h3>Council verdict — forge the APEX-ORACLE hybrid</h3>
+    <p style="margin:0;">Horizon-B multimodal transformer as the detection and classification spine &rarr; Horizon-C differentiable <code>batman</code> + SBI as the parameter and confidence head &rarr; Horizon-A BLS as the fast candidate generator. Bolt the centroid / difference-imaging vetting module across all of it. This is the only configuration that maximizes accuracy, removes the black-box objection, recovers monotransits, and produces a standout demo.</p>
+    <p style="margin:10px 0 0;"><b>Do first:</b> lock the data + label + injection-recovery harness. Nothing is provable without it.</p>
+  </div>
+
+  <h2>The three Horizons</h2>
+  <div class="grid">
+    <div class="card">
+      <h4>Horizon-A · Velocity</h4>
+      <span class="tag a">Fast front-end</span>
+      <p style="margin:0;font-size:13px;color:var(--muted);">SavGol detrend + BLS + 1-D TCN dual view.</p>
+      <ul><li>Trains in minutes, runs on CPU</li><li>SavGol can erase shallow transits</li><li>Blind to monotransits; capped ceiling</li></ul>
+    </div>
+    <div class="card">
+      <h4>Horizon-B · Apex</h4>
+      <span class="tag b">Detection spine</span>
+      <p style="margin:0;font-size:13px;color:var(--muted);">GP detrend + Transformer + 1-D ViT + GBT, multimodal.</p>
+      <ul><li>Highest accuracy on blends / rare classes</li><li>Attention overlays = free XAI</li><li>Overfit risk on small labels in 48h</li></ul>
+    </div>
+    <div class="card">
+      <h4>Horizon-C · Oracle</h4>
+      <span class="tag c">Parameter head</span>
+      <p style="margin:0;font-size:13px;color:var(--muted);">Differentiable batman in the loss + GP noise + SBI posteriors.</p>
+      <ul><li>White-box by construction</li><li>Recovers monotransits; exact posteriors</li><li>Hardest to engineer / stabilize in time</li></ul>
+    </div>
+  </div>
+
+  <h2>Scoring (council estimate, out of 5)</h2>
+  <table>
+    <tr><th>Criterion</th><th>A · Velocity</th><th>B · Apex</th><th>C · Oracle</th></tr>
+    <tr><td>Accuracy ceiling</td><td>3</td><td>5</td><td>4</td></tr>
+    <tr><td>Inference speed</td><td>5</td><td>2</td><td>2</td></tr>
+    <tr><td>Interpretability</td><td>3</td><td>4</td><td>5</td></tr>
+    <tr><td>Ship in 48h</td><td>5</td><td>3</td><td>2</td></tr>
+    <tr><td>Blue-ocean novelty</td><td>2</td><td>4</td><td>5</td></tr>
+    <tr><td>Live-demo wow</td><td>3</td><td>5</td><td>4</td></tr>
+  </table>
+
+  <h2>Advisor positions</h2>
+  <div class="adv"><b>Vasquez (Disentangler) &rarr; B.</b> Flux-only models cannot beat blends; multimodal transformer + attention can, and attention is free XAI.</div>
+  <div class="adv"><b>Rao (Estimator) &rarr; C.</b> Differentiable batman makes every latent a physical quantity; recovers monotransits; exact SBI posteriors.</div>
+  <div class="adv"><b>Thorne (Detrender) &rarr; not A.</b> SavGol erases ~200 ppm transits; GP detrending is mandatory.</div>
+  <div class="adv"><b>Tanaka (Adjudicator) &rarr; hybrid.</b> Small labels make B overfit; injection-recovery is the headline metric; C generalizes but must prove stability.</div>
+  <div class="adv"><b>Mehta (Conductor) &rarr; hybrid, layered.</b> A in hours, B as spine, C only on the candidate shortlist. Bounded scope de-risks.</div>
+  <div class="adv"><b>Vikram (Contrarian) &rarr; hybrid + fallback.</b> B alone loses the narrative; C alone risks a dead demo; keep a batman-MCMC fallback.</div>
+  <div class="adv"><b>Krishnan (Storyteller) &rarr; B+C.</b> Physical parameters + attention overlays = unbeatable demo.</div>
+  <div class="adv"><b>Roth (Inquisitor) &rarr; orthogonal.</b> Every option MUST bolt on centroid / difference-imaging vetting or lose to false positives.</div>
+
+  <h2>Blind spots caught in peer review</h2>
+  <ul>
+    <li>Monotransit recovery (P &gt; ~13.5 d) under-weighted by all but Rao.</li>
+    <li>Label scarcity and star/sector leakage is the real 48h constraint.</li>
+    <li>Demo latency and confidence calibration (ECE, reliability diagrams) decide the stage.</li>
+  </ul>
+
+  <footer>Generated by the Orbital Matrix war-room · llm-council methodology (independent advisors &rarr; anonymized peer review &rarr; chairman synthesis) · Awaiting user selection for Phase 3.</footer>
+</div>
+</body>
+</html>
